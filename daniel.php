@@ -13,15 +13,15 @@
         if (verifica_cliente($phoneNumber) === false){
             $texto = "Ola, seja bem vindo ao atendimento da Inforlaser\n\nPor favor, nos informe seu nome para darmos início ao atendimento";
             enviar_mensagem($phoneNumber, $texto);
+            $mensagem_recebida = "";
             $andamento = 1;
             iniciar_status($phoneNumber, $andamento);
-            $mensagem_recebida = "";
         }
 
         switch (verificar_status($phoneNumber)){
             case 1:
                 if($mensagem_recebida != ""){
-                    $nomeAbre = $mensagem_recebida;
+                    $nomeAbre = "'" . $mensagem_recebida . "'";
                     atualizar_status("nome_abre", $phoneNumber, $nomeAbre);
                     $texto = "Por favor, nos informe se você já é um cliente da Inforlaser\n\nEscolha uma das opções abaixo:\n*1*. Sim\n*2*. Não";
                     enviar_mensagem($phoneNumber, $texto);
@@ -29,6 +29,7 @@
                     $andamento = 2;
                     atualizar_status("andamento", $phoneNumber, $andamento);
                 }
+                break;
             case 2:
                 if($mensagem_recebida == "1"){
                     $texto = "Nos informe o seu código de cliente por favor ";
@@ -36,6 +37,9 @@
                     $mensagem_recebida = "";
                     $andamento = 3;
                     atualizar_status("andamento", $phoneNumber, $andamento);
+                }else{
+                    $texto = "Por favor, nos informe se você já é um cliente da Inforlaser\n\nEscolha uma das opções abaixo:\n*1*. Sim\n*2*. Não";
+                    enviar_mensagem($phoneNumber, $texto);
                 }
                 break;
             case 3:
@@ -62,33 +66,38 @@
                     $mensagem_recebida = "";
                 }
                 if($mensagem_recebida == "2"){
-                    $texto = "Nos informe o seu código de cliente por favor";
+                    $texto = "Nos informe o seu código de cliente por favor ";
                     enviar_mensagem($phoneNumber, $texto);
                     $mensagem_recebida = "";
                     $andamento = 3;
-                    atualizar_status($phoneNumber, $andamento);
+                    atualizar_status("andamento", $phoneNumber, $andamento);
                 }
                 break;
             case 5:
                 if($mensagem_recebida == "1"){
-                    $texto = "Nos informe o ativo da máquina para qual você deseja abrir o chamado:";
+                    $cod_cliente = consulta_codcliente_status($phoneNumber);
+                    $texto = "Nos informe o ativo da máquina para qual você deseja abrir o chamado: \n\n";
+                    $opcao = 0;
+                    $texto .= listar_equip($cod_cliente, $opcao)[0];
                     enviar_mensagem($phoneNumber, $texto);
                     $mensagem_recebida = "";
                     $andamento = 6;
                     atualizar_status("andamento", $phoneNumber, $andamento);
                 }
                 if($mensagem_recebida == "2"){
-                    $texto = "Nos informe o ativo da máquina para qual você deseja solicitar um suprimento:";
+                    $texto = "Teste";
                     enviar_mensagem($phoneNumber, $texto);
-                    $andamento = 50;
-                    atualizar_status($phoneNumber, $andamento);
+                    $andamento = 5;
+                    atualizar_status("andamento",$phoneNumber, $andamento);
                 }
                 break;
             case 6:
                 if($mensagem_recebida != ""){
-                    $ativo = "'" . $mensagem_recebida . "'";
-                    atualizar_status("ativo", $phoneNumber, $ativo);
-                    $texto = "A máquina em questão é: " . consultar_equipamento($ativo) . "?\n\nEscolha uma das opções abaixo:\n*1*. Sim\n*2*. Não";
+                    $cod_cliente = consulta_codcliente_status($phoneNumber);
+                    $opcao = $mensagem_recebida - 1;
+                    $ativo = listar_equip($cod_cliente, $opcao)[1];
+                    atualizar_status("ativo", $phoneNumber, "'" . $ativo . "'");
+                    $texto = "Qual o problema da máquina?\n\nEscolha uma das opções abaixo:\n\n1. Enroscando papel\n2. Manchando impressão\n3. Não puxa papel no scanner\n4. Não liga\n5. Não imprime do micro\n6. Outros";
                     enviar_mensagem($phoneNumber, $texto);
                     $mensagem_recebida = "";
                     $andamento = 7;
@@ -96,69 +105,55 @@
                 }
                 break;
             case 7:
-                if($mensagem_recebida == "1"){
-                    $texto = "Qual o problema da máquina?\n\nEscolha uma das opções abaixo:\n\n1. Enroscando papel\n2. Manchando impressão\n3. Não puxa papel no scanner\n4. Não liga\n5. Não imprime do micro\n6. Outros";
-                    enviar_mensagem($phoneNumber, $texto);
-                    $andamento = 8;
-                    atualizar_status("andamento", $phoneNumber, $andamento);
-                }
-                break;
-            case 8:
                 switch($mensagem_recebida){
                     case "1":
-                        $ativo = consulta_ativo_status($phoneNumber);
-                        $defeito = "Enroscando papel";
-                        $nomeAbre = consulta_nome_abre_status($phoneNumber);
-                        $codCliente = consulta_codcliente_status($phoneNumber);
-                        $codProt = sec_users($codCliente);
-                        $texto = "Código do cliente: " . $codCliente . "\nCódigo Prot.: " . $codProt;
-                        enviar_mensagem($phoneNumber, $texto);
-                        atualizar_status("problema", $phoneNumber, "'Enroscando Papel'");
-                        /*$andamento = 0;
-                        atualizar_status("andamento", $phoneNumber, $andamento);*/
-                        atualizar_status("data", $phoneNumber, "'" . $data . "'");
-                        atualizar_status("hora", $phoneNumber, $hora);
-                        $protocolo = numerar_protocolo($phoneNumber, $nomeAbre, $codCliente, $ativo, $defeito, $codProt, $data, $hora);
-                        //$texto = "Ano: " . substr($data,2,2) . "Mês: " . substr($data,5,2) . "Dia: " . substr($data,8,2);
-                        $texto = $protocolo;
-                        enviar_mensagem($phoneNumber, $texto);
+                        $problema = "Enroscando papel";
+                        atualizar_status("problema", $phoneNumber, $problema);
+                        $mensagem_recebida = "";
+                        finalizar_chamado($phoneNumber, $data, $hora);
                         break;
                     case "2":
-                        atualizar_status("problema", $phoneNumber, "'Manchando impressão'");
-                        $texto = "Manchando impressão";
-                        enviar_mensagem($phoneNumber, $texto);
-                        $andamento = 0;
-                        atualizar_status("andamento", $phoneNumber, $andamento);
+                        $problema = "Manchando impressão";
+                        atualizar_status("problema", $phoneNumber, $problema);
+                        $mensagem_recebida = "";
+                        finalizar_chamado($phoneNumber, $data, $hora);
                         break;
                     case "3":
-                        atualizar_status("problema", $phoneNumber, "'Não puxa papel no scanner'");
-                        $texto = "Não puxa papel no scanner";
-                        enviar_mensagem($phoneNumber, $texto);
-                        $andamento = 0;
-                        atualizar_status("andamento", $phoneNumber, $andamento);
+                        $problema = "Não puxa papel no scanner";
+                        atualizar_status("problema", $phoneNumber, $problema);
+                        $mensagem_recebida = "";
+                        finalizar_chamado($phoneNumber, $data, $hora);
                         break;
                     case "4":
-                        atualizar_status("problema", $phoneNumber, "'Não liga'");
-                        $texto = "Não liga";
-                        enviar_mensagem($phoneNumber, $texto);
-                        $andamento = 0;
-                        atualizar_status("andamento", $phoneNumber, $andamento);
+                        $problema = "Não liga";
+                        atualizar_status("problema", $phoneNumber, $problema);
+                        $mensagem_recebida = "";
+                        finalizar_chamado($phoneNumber, $data, $hora);
                         break;
                     case "5":
-                        atualizar_status("problema", $phoneNumber, "'Não imprime do micro'");
-                        $texto = "Não imprime do micro";
-                        enviar_mensagem($phoneNumber, $texto);
-                        $andamento = 0;
-                        atualizar_status("andamento", $phoneNumber, $andamento);
+                        $problema = "Não imprime do micro";
+                        atualizar_status("problema", $phoneNumber, $problema);
+                        $mensagem_recebida = "";
+                        finalizar_chamado($phoneNumber, $data, $hora);
                         break;
                     case "6":
-                        atualizar_status("problema", $phoneNumber, "'Outros'");
-                        $texto = "Outros";
+                        $problema = "Outros";
+                        atualizar_status("problema", $phoneNumber, $problema);
+                        $mensagem_recebida = "";
+                        $texto = "Descreva melhor o problema da máquina";
                         enviar_mensagem($phoneNumber, $texto);
-                        $andamento = 0;
+                        $andamento = 8;
                         atualizar_status("andamento", $phoneNumber, $andamento);
                         break;
-            }//Fim Switch msg recebida
+                }//Fim Switch msg recebida
+            case 8:
+                if($mensagem_recebida != ""){
+                    $coment = $mensagem_recebida;
+                    atualizar_status("comentario", $phoneNumber, $coment);
+                    $mensagem_recebida = "";
+                    finalizar_chamado($phoneNumber, $data, $hora);
+                }
+                break;
         }//Fim Switch 1
     }//Fim do primeiro if
 
@@ -189,6 +184,27 @@
             }
         }
     }*/
+
+    function finalizar_chamado($phoneNumber, $data, $hora){
+        $coment = consulta_comentario_status($phoneNumber);
+        $problema = consulta_problema_status($phoneNumber);
+        $ativo = consulta_ativo_status($phoneNumber);
+        $nomeAbre = consulta_nome_abre_status($phoneNumber);
+        $codCliente = consulta_codcliente_status($phoneNumber);
+        $codProt = sec_users_cod_prot($codCliente);
+        $userSig = sec_users_sigla($codCliente);
+        atualizar_status("comentario", $phoneNumber, $coment);
+        atualizar_status("data", $phoneNumber, "'" . $data . "'");
+        atualizar_status("hora", $phoneNumber, $hora);
+        $protocolo = numerar_protocolo($phoneNumber, $nomeAbre, $codCliente, $ativo, $problema, $coment, $codProt, $userSig, $data, $hora);
+        $andamento = 0;
+        atualizar_status("andamento", $phoneNumber, $andamento);
+        excluir_status();
+        $texto = "Chamado para ativo " . $ativo . " aberto.\n\nNúmero de protocolo: " . $protocolo;
+        enviar_mensagem($phoneNumber, $texto);
+        $texto = "*Atendimento Finalizado*";
+        enviar_mensagem($phoneNumber, $texto);
+    }
     function enviar_mensagem($numeroTelefone, $text){
         $url = 'https://api5.megaapi.com.br/rest/sendMessage/megaapi-MZAyU7l7QPMtYZE90fDNATF0b1/text';
         $headers = array(
@@ -223,7 +239,6 @@
             echo 'Resposta: ' . $response;
         }
     }
-
     function abrir_protocolo($numeroTelefone, $tipo){
         $conexao = mysqli_connect('192.168.176.129', 'root', 'je131199', 'chatbot');
 
@@ -240,7 +255,6 @@
         }
         mysqli_close($conexao);
     }
-
     function verifica_cliente($numeroTelefone){
         // Configurações do banco de dados
         $servername = "192.168.176.129";
@@ -270,7 +284,6 @@
             return false;
         }
     }
-
     function iniciar_status($numeroTelefone, $andamento){
         // Configurações do banco de dados
         $servername = "192.168.176.129";
@@ -294,7 +307,6 @@
         $conn->close();
 
     };
-
     function atualizar_status($campo, $numeroTelefone, $valor){
         // Configurações do banco de dados
         $servername = "192.168.176.129";
@@ -310,6 +322,14 @@
             die("Falha na conexão: " . $conn->connect_error);
         }
 
+        if($campo == "problema"){
+            $valor = "'" . $valor . "'";
+        }
+
+        if($campo == "comentario"){
+            $valor = "'" . $valor . "'";
+        }
+
         // Consulta para verificar se o ID existe
         $sql = "UPDATE status_conversa SET $campo = $valor WHERE telefone = $numeroTelefone";
         $conn->query($sql);
@@ -317,7 +337,6 @@
         //Fechando a conexão
         $conn->close();
     };
-
     function excluir_status(){
         $servername = "192.168.176.129";
         $username = "root";
@@ -339,7 +358,6 @@
         //Fechando a conexão
         $conn->close();
     }
-
     function registrar_protocolo($value1, $value2, $value3, $value4, $value5, $value6){
         // Configurações do banco de dados
         $servername = "192.168.176.129";
@@ -362,7 +380,6 @@
         //Fechando a conexão
         $conn->close();
     }
-
     function abrir_chamado($numeroTelefone){
         $servername = "192.168.176.129";
         $username = "root";
@@ -390,7 +407,6 @@
 
         return $retorno;
     }
-
     function verificar_status($numeroTelefone){
         $servername = "192.168.176.129";
         $username = "root";
@@ -418,7 +434,6 @@
 
         return $retorno;
     }
-
     function consultar_razaoSocial($codigoCliente){
         $servername = "192.168.176.129";
         $username = "root";
@@ -446,7 +461,6 @@
 
         return $retorno;
     }
-
     function consultar_equipamento($ativo){
         $servername = "192.168.176.129";
         $username = "root";
@@ -474,8 +488,7 @@
 
         return $retorno;
     }
-
-    function numerar_protocolo($phoneNumber, $nomeAbre, $codCliente, $ativo, $defeito, $codProt, $data, $hora){
+    function numerar_protocolo($phoneNumber, $nomeAbre, $codCliente, $ativo, $defeito, $comentCli, $codProt, $userSig, $data, $hora){
         $servername = "192.168.176.129";
         $username = "root";
         $password = "je131199";
@@ -500,24 +513,26 @@
             $numera = 0;
         }
 
-        $numera++;
+        for($i = 1; $i < 3; $i++) {
 
-        
-        if ($numera < 100 ){
-            if ($numera < 10){
-                $numera = "00" . $numera;
-                }
-            else{
-                $numera = "0" . $numera;
-                }
+            $numera++;//$numera == 1
+
+            if ($numera < 100 ){
+                if ($numera < 10){
+                    $numera = "00" . $numera;
+                    }
+                else{
+                    $numera = "0" . $numera;
+                    }
+            }
+            
+
+            $protocolo = $codProt . $numera . substr($data,2,2) . substr($data,8,2) . substr($data,5,2);
+
+
+            $sql2 = "INSERT INTO numera_protocolo (protocolo, data_abertura, hora, numerador) VALUES ('$protocolo', '$data', '$hora', $numera)";
+            $result =$conn->query($sql2);
         }
-        
-
-        $protocolo = $codProt . $numera . substr($data,2,2) . substr($data,8,2) . substr($data,5,2);
-
-
-        $sql2 = "INSERT INTO numera_protocolo (protocolo, data_abertura, hora, numerador) VALUES ('$protocolo', '$data', '$hora', $numera)";
-        $result =$conn->query($sql2);
 
         $numera++;
         
@@ -533,32 +548,29 @@
 		}
 
 	    $protocolo_i = $codProt . $numera . substr($data,2,2) . substr($data,8,2) . substr($data,5,2);
-    //	$solicitante = "Sistema On Line - Usuário: " . [usr_name];
+        //	$solicitante = "Sistema On Line - Usuário: " . [usr_name];
 	    $solicitante = $nomeAbre;
-    // Incluir Protocolo Inicial no Sistema //
+        // Incluir Protocolo Inicial no Sistema //
         
-        $coment_at = " - *** NECESSITA ATENDIMENTO NO LOCAL ***";
+        $coment_at = " - *** NECESSITA ATENDIMENTO ***";
         
-	    $comentario = $defeito . $coment_at;
+	    $comentario = "Defeito: " . $defeito . "\n$comentCli\n\n". $coment_at;
 	    $conn->query("INSERT INTO historico_protocolos (prot_inicial, data_abertura, Comentario,
 			hora_abre, codigo, radio_forn, assunto, executor, prev_log_in, prev_lab, 
 			prev_atend, prev_fat, prev_log_out, prev_com, alteradoPor, dataalt, solicitante, ativo, fone, chamado) VALUES
 			('$protocolo_i', '$data', '$comentario', '$hora', '$codCliente',
-			'cli', '[assunto]', '[usr_sig]','$data', '$data',
-			'$data', '$data', '$data', '$data', '[usr_sig]', 
+			'cli', '[assunto]', '$userSig','$data', '$data',
+			'$data', '$data', '$data', '$data', '$userSig', 
 			'$data', '$solicitante', '$ativo', '$phoneNumber', '{tipo_atend}')");
 
-// Incluir Protocolo Diario no Sistema //
-	$coment = "Solicitação de chamado via sistema. " . $comentario;
-	$conn->query("INSERT INTO prot_diario (prot_inicial, protocolo, data_abertura, local_abre, 
-				Comentario, codigo, radio_forn, executor, local_fisico, prev_data) VALUES (
-				'$protocolo_i', '$protocolo', '$data', 'CLIENTE', '$coment', 
-				'[usr_cli]', 'cli', '[usr_sig]', 'ATENDIMENTO', '$data')");
+        // Incluir Protocolo Diario no Sistema //
+        $coment = "Solicitação de chamado via sistema. " . $comentario;
+        $conn->query("INSERT INTO prot_diario (prot_inicial, protocolo, data_abertura, local_abre, Comentario, hora_abre, codigo, radio_forn, executor, local_fisico, prev_data) VALUES (
+                                            '$protocolo_i', '$protocolo', '$data', 'CLIENTE', '$coment', '$hora', '$codCliente', 'cli', '$userSig', 'ATENDIMENTO', '$data')");
         //-----------------------------------------------------------------------------------------
         
-        return "Protocolo: " . $protocolo . "\nProtocolo Inicial: " . $protocolo_i;
+        return $protocolo;
     }
-
     function consulta_ativo_status($numeroTelefone){
         // Configurações do banco de dados
         $servername = "192.168.176.129";
@@ -619,7 +631,6 @@
         }
         return $nomeAbre;
     }
-
     function consulta_codcliente_status($numeroTelefone){
         // Configurações do banco de dados
         $servername = "192.168.176.129";
@@ -650,8 +661,69 @@
         }
         return $codCliente;
     }
+    function consulta_problema_status($numeroTelefone){
+        // Configurações do banco de dados
+        $servername = "192.168.176.129";
+        $username = "root";
+        $password = "je131199";
+        $dbname = "chatbot";
 
-    function sec_users($codCliente){
+        // Criando a conexão
+        $conn = new mysqli($servername, $username, $password, $dbname);
+
+        // Verificando a conexão
+        if ($conn->connect_error) {
+            die("Falha na conexão: " . $conn->connect_error);
+        }
+
+        // Consulta para verificar se o ID existe
+        $sql = "SELECT problema FROM status_conversa WHERE telefone = $numeroTelefone";
+        $result = $conn->query($sql);
+
+        // Fechando a conexão
+        $conn->close();
+
+        // Verificando o resultado da consulta
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $problema = $row['problema'];
+            }
+        }
+        return $problema;
+    }
+
+    function consulta_comentario_status($numeroTelefone){
+        // Configurações do banco de dados
+        $servername = "192.168.176.129";
+        $username = "root";
+        $password = "je131199";
+        $dbname = "chatbot";
+
+        // Criando a conexão
+        $conn = new mysqli($servername, $username, $password, $dbname);
+
+        // Verificando a conexão
+        if ($conn->connect_error) {
+            die("Falha na conexão: " . $conn->connect_error);
+        }
+
+        // Consulta para verificar se o ID existe
+        $sql = "SELECT comentario FROM status_conversa WHERE telefone = $numeroTelefone";
+        $result = $conn->query($sql);
+
+        // Fechando a conexão
+        $conn->close();
+
+        // Verificando o resultado da consulta
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $comentario = $row['comentario'];
+            }
+        }
+        return $comentario;
+    }
+    
+    function sec_users_cod_prot($codCliente){
         $servername = "192.168.176.129";
         $username = "root";
         $password = "je131199";
@@ -673,4 +745,62 @@
             return $codProt;
         }
     }//Fim da function sec_users
+
+    function sec_users_sigla($codCliente){
+        $servername = "192.168.176.129";
+        $username = "root";
+        $password = "je131199";
+        $dbname = "protocolo";
+
+        // Criando a conexão
+        $conn = new mysqli($servername, $username, $password, $dbname);
+
+        // Verificando a conexão
+        if ($conn->connect_error) {
+            die("Falha na conexão: " . $conn->connect_error);
+        }
+
+        $sql =  "SELECT sigla FROM sec_users WHERE cod_cliente = '$codCliente'";
+        $result = $conn->query($sql);
+
+        while ($row = $result->fetch_assoc()){
+            $sigla = $row['sigla'];
+            return $sigla;
+        }
+    }
+
+    function listar_equip($codCliente, $opcao){
+        $servername = "192.168.176.129";
+        $username = "root";
+        $password = "je131199";
+        $dbname = "protocolo";
+
+        // Criando a conexão
+        $conn = new mysqli($servername, $username, $password, $dbname);
+
+        // Verificando a conexão
+        if ($conn->connect_error) {
+            die("Falha na conexão: " . $conn->connect_error);
+        }
+
+        $sql =  "SELECT ativo FROM equip_contrato WHERE cod_unidade = '$codCliente' AND numeroserie != 'INFORLASER'";
+        $result = $conn->query($sql);
+
+        $i = 0;
+        $listaEquip = "";
+        $ativos = array();
+
+        while ($row = $result->fetch_assoc()){
+            $i++;
+            $ativo = $row['ativo'];
+            $descricao = consultar_equipamento($ativo);
+
+            array_push($ativos, $row['ativo']);
+            
+            $teste = "Isso é um teste!";
+
+            $listaEquip = $listaEquip . "*" . $i . ".* " . $ativo . " - " . $descricao . "\n";
+        }
+        return array($listaEquip, $ativos[$opcao]);
+    }
 ?>
